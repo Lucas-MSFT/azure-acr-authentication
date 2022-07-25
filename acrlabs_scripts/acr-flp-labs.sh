@@ -116,88 +116,188 @@ function print_usage_text () {
     echo -e "\nHere is the list of current labs available:\n
 *************************************************************************************
 CORE LABS:
-*\t 1. ACR Network - LAB 01
-*\t 2. ACR Network - LAB 02
+*\t 1. ACR Network - Private Endpoint
+*\t 2. ACR Network - Firewall
 
 *************************************************************************************\n"
 }
 
 
 
+## Lab scenario 1
+## ACR Network - Private Endpoint
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Lab scenario 1
 function lab_scenario_1 () {
+## Private Endpoint - LAB
 
-    ACI_NAME="appcontaineryaml"
-    RESOURCE_GROUP=aci-labs-ex${LAB_SCENARIO}-rg-${USER_ALIAS}
-    ACI_LENGTH_STRING=12
-    ACI_CONTAINER_DNS_LABEL=$(tr -dc a-z </dev/urandom | head -c $ACI_LENGTH_STRING)
-    ACI_CONTAINER_IMAGE="mcr.microsoft.com/azuredocs/aci-helloworld"
+## Set defaults 
+REGISTRY_NAME=acrlab1<alias>
+RESOURCE_GROUP=acr_labs
+NETWORK_NAME=acrlab1vnet
+SUBNET_NAME=default
 
-    echo -e "\n--> Deploying resources for lab${LAB_SCENARIO}...\n"
-    
-    ## Remove any previous aci.yaml file
-    rm -rf aci.yaml
+## Create Vnet for ACR
+echo "Create Vnet for ACR"
+az network vnet subnet update \
+  --name $SUBNET_NAME \
+  --vnet-name $NETWORK_NAME \
+  --resource-group $RESOURCE_GROUP \
+  --disable-private-endpoint-network-policies &>/dev/null
 
-cat <<EOF > aci.yaml
-apiVersion: '2021-07-01'
-location: $LOCATION
-name: $ACI_NAME
-properties:
-  containers:
-  - name: $ACI_NAME
-    properties:
-      image: mcr.microsoft.com/azuredocs/aci-helloworld
-      ports:
-      - port: 80
-        protocol: TCP
-      resources:
-        requests:
-          cpu: 1.0
-          memoryInGB: 1.5
-  ipAddress:
-    type: Public
-    ports:
-    - protocol: tcp
-      port: '80'
-  osType: Linux
-  restartPolicy: Always
-tags: null
-type: Microsoft.ContainerInstance/containerGroups
+## Create Private DNS Zone
+echo "Create Private DNS Zone"
+az network private-dns zone create \
+  --resource-group $RESOURCE_GROUP \
+  --name "privatelink.azurecr.io" &>/dev/null
+
+## Create Private DNS Link Vnet
+echo "Create Private DNS Link Vnet"
+az network private-dns link vnet create \
+  --resource-group $RESOURCE_GROUP \
+  --zone-name "privatelink.azurecr.io" \
+  --name MyDNSLink \
+  --virtual-network $NETWORK_NAME \
+  --registration-enabled false &>/dev/null
+
+## Get Registry ID
+echo "Get Registry ID"
+REGISTRY_ID=$(az acr show \
+	--name $REGISTRY_NAME \
+	--query 'id' \
+	--output tsv)
+
+## Create Private Endpoint
+echo "Create Private Endpoint"
+az network private-endpoint create \
+  --name myPrivateEndpoint \
+  --resource-group $RESOURCE_GROUP \
+  --vnet-name $NETWORK_NAME \
+  --subnet $SUBNET_NAME \
+  --private-connection-resource-id $REGISTRY_ID \
+  --group-id registry \
+  --connection-name myConnection &>/dev/null
+
+## Get Network Interface ID
+echo "Get Network Interface ID"
+NETWORK_INTERFACE_ID=$(az network private-endpoint show \
+	--name myPrivateEndpoint \
+	--resource-group $RESOURCE_GROUP \
+	--query 'networkInterfaces[0].id' \
+	--output tsv)
+
+## Get Registry Private IP
+echo "Get Registry Private IP"
+REGISTRY_PRIVATE_IP=$(az network nic show \
+	--ids $NETWORK_INTERFACE_ID \
+	--query "ipConfigurations[?privateLinkConnectionProperties.requiredMemberName=='registry'].privateIpAddress" \
+	--output tsv)
+
+## Get Data EndPoint Private IP
+echo "Get Data EndPoint Private IP"
+DATA_ENDPOINT_PRIVATE_IP=$(az network nic show \
+	--ids $NETWORK_INTERFACE_ID \
+	--query "ipConfigurations[?privateLinkConnectionProperties.requiredMemberName=='registry_data_eastus'].privateIpAddress" \
+	--output tsv)
+
+## An FQDN is associated with each IP address in the IP configurations
+echo "Get Registry FQDN"
+REGISTRY_FQDN=$(az network nic show \
+	--ids $NETWORK_INTERFACE_ID \
+	--query "ipConfigurations[?privateLinkConnectionProperties.requiredMemberName=='registry'].privateLinkConnectionProperties.fqdns" \
+	--output tsv)
+
+## Get Data Endpoint FQDN
+echo "Get Data Endpoint FQDN"
+DATA_ENDPOINT_FQDN=$(az network nic show \
+	--ids $NETWORK_INTERFACE_ID \
+	--query "ipConfigurations[?privateLinkConnectionProperties.requiredMemberName=='registry_data_eastus'].privateLinkConnectionProperties.fqdns" \
+	--output tsv)
+
+## Set Private DNS Record 
+echo "Set Private DNS Record"
+az network private-dns record-set a create \
+  --name $REGISTRY_NAME \
+  --zone-name privatelink.azurecr.io \
+  --resource-group $RESOURCE_GROUP &>/dev/null
+
+## Specify registry region in data endpoint name
+echo "Specify registry region in data endpoint name"
+az network private-dns record-set a create \
+  --name ${REGISTRY_NAME}.${REGISTRY_LOCATION}.data \
+  --zone-name privatelink.azurecr.io \
+  --resource-group $RESOURCE_GROUP &>/dev/null
+
+## Create A Record in Private DNS Record Set
+echo "Create A Record in Private DNS Record Set"
+az network private-dns record-set a add-record \
+  --record-set-name $REGISTRY_NAME \
+  --zone-name privatelink.azurecr.io \
+  --resource-group $RESOURCE_GROUP \
+  --ipv4-address $REGISTRY_PRIVATE_IP &>/dev/null
+
+## Specify registry region in data endpoint name
+echo "Specify registry region in data endpoint name"
+az network private-dns record-set a add-record \
+  --record-set-name ${REGISTRY_NAME}.${REGISTRY_LOCATION}.data \
+  --zone-name privatelink.azurecr.io \
+  --resource-group $RESOURCE_GROUP \
+  --ipv4-address $DATA_ENDPOINT_PRIVATE_IP &>/dev/null
+
+## Import HelloWorld image to ACR
+echo "Import HelloWorld image to ACR"
+az acr import \
+  --name acrlab1<alias> \
+  --source mcr.microsoft.com/azuredocs/aks-helloworld:v1 \
+  --image aks-helloworld:v1 &>/dev/null
+
+## Disable public access on the ACR
+echo "Disable public access on the ACR"
+az acr update \
+  --name $REGISTRY_NAME \
+  --public-network-enabled false &>/dev/null
+
+## Deploy an app to AKS that needs to pull the imported helloworld image, pulling the image will fail
+echo "Deploy an app to AKS that needs to pull the imported helloworld image, pulling the image will fail"
+az aks get-credentials \
+  --resource-group acr_labs \
+  --name acr-lab1-aks &>/dev/null
+ 
+
+## Create AKS NS for the Workload
+echo "Create AKS NS for the Workload"
+kubectl create ns workload &>/dev/null
+
+## Deploy the workload
+echo "Deploy the workload"
+cat <<EOF | kubectl -n workload apply -f -
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aks-helloworld-one  
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aks-helloworld-one
+  template:
+    metadata:
+      labels:
+        app: aks-helloworld-one
+    spec:
+      containers:
+      - name: aks-helloworld-one
+        image: acrlab1<alias>.azurecr.io/aks-helloworld:v1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        env:
+        - name: TITLE
+          value: "Welcome to Azure Kubernetes Service (AKS)"
 EOF
+ 
 
-    ERROR_MESSAGE="$(az container create --resource-group $RESOURCE_GROUP --file aci.yaml 2>&1)"
 
-    echo -e "\n\n********************************************************"
-    echo -e "\n--> Issue description: \n Customer wants to deploy an ACI using the following:"
-    echo -e "az container create --resource-group $RESOURCE_GROUP --file aci.yaml\n"
-    echo -e "Cx is getting the error message:"
-    echo -e "\n-------------------------------------------------------------------------------------\n"
-    echo $ERROR_MESSAGE
-    echo -e "\n-------------------------------------------------------------------------------------\n"
-    echo -e "The yaml file aci.yaml is in your current path, you have to modified it in order to be able to deploo
-y the second container instance \"appcontaineryaml\"\n"
-    echo -e "Once you find the issue, update the aci.yaml file and run the commnad:"
-    echo -e "az container create --resource-group $RESOURCE_GROUP --file aci.yaml\n"
 }
-
 
 function lab_scenario_1_validation () {
 
@@ -221,6 +321,97 @@ eploy the second container instance \"appcontaineryaml\"\n"
     fi
 
 }
+
+
+
+## Lab scenario 2
+## ACR Network - Firewall
+function lab_scenario_2 () {
+## Firewall - LAB
+
+## Create RG for ACR
+echo "Create an ACR"
+az group create \
+  --name acr_labs \
+  --location eastus &>/dev/null
+
+
+## Create ACR
+az acr create \
+  --resource-group acr_labs \
+  --name acrlab2<alias> \
+  --sku Premium &>/dev/null
+
+
+## Import HelloWorld image to ACR
+echo "Import HelloWorld image to ACR"
+az acr import \
+  --name acrlab2<alias> \
+  --source mcr.microsoft.com/azuredocs/aks-helloworld:v1 \
+  --image aks-helloworld:v1 &>/dev/null
+
+
+## Set ACR to default Deny to limit access to select networks, with no rules
+echo "Set ACR to default Deny to limit access to select networks, with no rules"
+az acr update \
+  --name acrlab2<alias> \
+  --default-action Deny &>/dev/null
+
+
+## Create AKS cluster with 1 node and attach to ACR
+echo "Create AKS cluster with 1 node and attach to ACR"
+az aks create \
+  -g acr_labs \
+  -n acr-lab2-aks \
+  --attach-acr acrlab2<alias> \
+  --node-count 1 \
+  --network-plugin azure &>/dev/null
+
+
+## Deploy an app to AKS that needs to pull the imported helloworld image, pulling the image will fail
+echo "Deploy an app to AKS that needs to pull the imported helloworld image, pulling the image will fail"
+az aks get-credentials \
+  --resource-group acr_labs \
+  --name acr-lab2-aks &>/dev/null
+ 
+
+kubectl create ns workload
+cat <<EOF | kubectl -n workload apply -f -
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aks-helloworld-one  
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aks-helloworld-one
+  template:
+    metadata:
+      labels:
+        app: aks-helloworld-one
+    spec:
+      containers:
+      - name: aks-helloworld-one
+        image: acrlab2<alias>.azurecr.io/aks-helloworld:v1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        env:
+        - name: TITLE
+          value: "Welcome to Azure Kubernetes Service (AKS)"
+EOF
+ 
+
+}
+
+
+
+
+function lab_scenario_2_validation () {
+
+}
+
 
 
 
