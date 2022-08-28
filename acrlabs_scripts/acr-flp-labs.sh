@@ -1,7 +1,6 @@
 #!/bin/bash
 
 ## script name: acr-flp-labs.sh
-## Version v0.0.1 20220725
 ## Set of tools to deploy ACR Troubleshooting Labs
 
 ## "-l|--lab" Lab scenario to deploy
@@ -89,16 +88,6 @@ function check_resourcegroup_cluster () {
     then
         echo -e "\n--> Container Registry $ACR_NAME already exists...\n"
         echo -e "Please remove that one before you can proceed with the lab.\n"
-        exit 5
-    fi
-}
-
-## Validate ACR exists
-function validate_acr_exists () {
-    ACR_EXIST=$(az acr show -g $ACR_RG_NAME -n $ACR_NAME &>/dev/null; echo $?)
-    if [ $ACR_EXIST -ne 0 ]
-    then
-        echo -e "\n--> ERROR: Failed to create Container Registry $ACR_NAME in resource group $ACR_RG_NAME ...\n"
         exit 5
     fi
 }
@@ -342,26 +331,16 @@ echo "END"
 
 
 function lab_scenario_1_validation () {
+    POD_STATUS=$(kubectl -n workload get po -l app=aks-helloworld-one -o json | jq -r ".items[].status.containerStatuses[].state.running.startedAt")
 
-    ACR_NAME="appcontaineryaml"
-    RESOURCE_GROUP=aci-labs-ex${LAB_SCENARIO}-rg-${USER_ALIAS}
-
-    validate_aci_exists $RESOURCE_GROUP $ACI_NAME
-
-    ACR_STATUS=$(az container show -g $RESOURCE_GROUP -n $ACI_NAME &>/dev/null; echo $?)
-
-    if [ $ACI_STATUS -eq 0 ]
+    if [[ "$POD_STATUS" != "null" ]]
     then
         echo -e "\n\n========================================================"
-        echo -e '\nContainer instance "appcontaineryaml" looks good now!\n'
+        echo -e "\nPod is running!\n"
     else
         echo -e "\n--> Error: Scenario $LAB_SCENARIO is still FAILED\n\n"
-        echo -e "The yaml file aci.yaml is in your current path, you have to modified it in order to be able to dd
-eploy the second container instance \"appcontaineryaml\"\n"
-        echo -e "Once you find the issue, update the aci.yaml file and run the commnad:"
-        echo -e "az container create --resource-group $RESOURCE_GROUP --file aci.yaml\n"
+        echo -e "Pod is not Running!\n"
     fi
-
 }
 
 
@@ -369,11 +348,7 @@ eploy the second container instance \"appcontaineryaml\"\n"
 ## Lab scenario 2
 ## ACR Network - Firewall
 function lab_scenario_2 () {
-## Firewall - LAB
 
-ACR_RG_NAME="acr_labs2"
-ACR_LOCATION="westeurope"
-ACR_NAME="acrlab2alias"
 ACR_SKU="Premium"
 
 AKS_RG_NAME=$ACR_RG_NAME
@@ -382,15 +357,8 @@ AKS_NODES_COUNT="1"
 AKS_NETWORK_PLUGIN="azure"
 
 
-## Create RG for ACR
-echo "Create RG for ACR"
-az group create \
-  --name $ACR_RG_NAME \
-  --location $ACR_LOCATION &>/dev/null
-
-
 ## Create ACR
-echo "Create ACR"
+#echo "Create ACR"
 az acr create \
   --resource-group $ACR_RG_NAME \
   --name $ACR_NAME \
@@ -398,7 +366,7 @@ az acr create \
 
 
 ## Import HelloWorld image to ACR
-echo "Import HelloWorld image to ACR"
+#echo "Import HelloWorld image to ACR"
 az acr import \
   --name $ACR_NAME \
   --source mcr.microsoft.com/azuredocs/aks-helloworld:v1 \
@@ -406,14 +374,14 @@ az acr import \
 
 
 ## Set ACR to default Deny to limit access to select networks, with no rules
-echo "Set ACR to default Deny to limit access to select networks, with no rules"
+#echo "Set ACR to default Deny to limit access to select networks, with no rules"
 az acr update \
   --name $ACR_NAME \
   --default-action Deny &>/dev/null
 
 
 ## Create AKS cluster with 1 node and attach to ACR
-echo "Create AKS cluster with 1 node and attach to ACR"
+#echo "Create AKS cluster with 1 node and attach to ACR"
 az aks create \
   --resource-group $ACR_RG_NAME \
   --name $AKS_NAME \
@@ -423,17 +391,18 @@ az aks create \
 
 
 ## Deploy an app to AKS that needs to pull the imported helloworld image, pulling the image will fail
-echo "Deploy an app to AKS that needs to pull the imported helloworld image, pulling the image will fail"
+#echo "Deploy an app to AKS that needs to pull the imported helloworld image, pulling the image will fail"
 az aks get-credentials \
   --resource-group $ACR_RG_NAME \
   --name $AKS_NAME \
   --overwrite-existing &>/dev/null
 
 
-echo ""
-echo "Deploy deployment...."
-
+## Create workload NS
+#echo "Create workload NS"
 kubectl create ns workload
+
+## Execute deployment
 cat <<EOF | kubectl -n workload apply -f -
 apiVersion: apps/v1
 kind: Deployment
@@ -459,24 +428,21 @@ spec:
         - name: TITLE
           value: "Welcome to Azure Kubernetes Service (AKS)"
 EOF
- 
 
 }
 
+function lab_scenario_2_validation () {
+    POD_STATUS=$(kubectl -n workload get po -l app=aks-helloworld-one -o json | jq -r ".items[].status.containerStatuses[].state.running.startedAt")
 
-
-
-#function lab_scenario_2_validation () {
-#
-#}
-
-
-
-
-
-
-
-
+    if [[ "$POD_STATUS" != "null" ]]
+    then
+        echo -e "\n\n========================================================"
+        echo -e "\nPod is running!\n"
+    else
+        echo -e "\n--> Error: Scenario $LAB_SCENARIO is still FAILED\n\n"
+        echo -e "Pod is not Running!\n"
+    fi  
+}
 
 ## If -h | --help option is selected usage will be displayed
 if [ $HELP -eq 1 ]
@@ -512,16 +478,11 @@ then
   ACR_RG_NAME="rg-acr-flp-labs"
 fi
 
-
-echo ">>>>>>"
-echo "ACR_NAME is: $ACR_NAME"
-echo ""
-
 if [[ "$ACR_NAME" == "" ]]
 then
   ACR_NAME=$(shuf -er -n10 {a..z} {0..9} | paste -sd "")
-  echo "Since ACR_NAME is Empty..."
-  echo "Final Name for ACR: $ACR_NAME"
+  #echo "Since ACR_NAME is Empty..."
+  #echo "Final Name for ACR: $ACR_NAME"
 fi
 
 
