@@ -101,7 +101,7 @@ function validate_acr_exists () {
     RESOURCE_GROUP="$1"
     ACR_NAME="$2"
 
-    ACR_EXIST=$(az acr show -g $RESOURCE_GROUP -n $ACI_NAME &>/dev/null; echo $?)
+    ACR_EXIST=$(az acr show -g $RESOURCE_GROUP -n $ACR_NAME &>/dev/null; echo $?)
     if [ $ACR_EXIST -ne 0 ]
     then
         echo -e "\n--> ERROR: Failed to create Container Registry $ACR_NAME in resource group $RESOURCE_GROUP ...\n"
@@ -130,49 +130,95 @@ CORE LABS:
 function lab_scenario_1 () {
 ## Private Endpoint - LAB
 
+
 ## Set defaults 
-REGISTRY_NAME=acrlab1<alias>
-RESOURCE_GROUP=acr_labs
-NETWORK_NAME=acrlab1vnet
-SUBNET_NAME=default
+ACR_NAME=acrlab1alias
+ACR_RG_NAME=acr_labs1
+ACR_VNET_NAME=acrlab1vnet
+ACR_SUBNET_NAME=default
+ACR_RG_LOCATION="westeurope"
+ACR_SKU="Premium"
+
+
+AKS_NAME="acr-lab1-aks"
+AKS_NODE_COUNT="1"
+AKS_NETWORK_PLUGIN="azure"
+
+AKS_VNET_CIDR="10.0.0.0/16"
+AKS_SNET_NAME="default"
+AKS_SNET_CIDR="10.0.1.0/24"
+
+
+
+
+## Create RG ACR
+echo "Create RG ACR"
+az group create \
+  --name $ACR_RG_NAME \
+  --location $ACR_RG_LOCATION &>/dev/null
+
+## Create ACR
+echo "Create ACR"
+az acr create \
+  --resource-group $ACR_RG_NAME \
+  --name $ACR_NAME \
+  --sku $ACR_SKU &>/dev/null
+
+## Create AKS cluster with 1 node and attach to ACR
+echo "Create AKS cluster with 1 node and attach to ACR"
+az aks create \
+  --resource-group $ACR_RG_NAME \
+  --name $AKS_NAME \
+  --attach-acr $ACR_NAME \
+  --node-count $AKS_NODE_COUNT \
+  --network-plugin $AKS_NETWORK_PLUGIN &>/dev/null 
+
+## Create a second empty decoy VNET and create a pvt endpoint to this VNET on the ACR
+echo "Create a second empty decoy VNET and create a pvt endpoint to this VNET on the ACR"
+az network vnet create \
+  --resource-group $ACR_RG_NAME \
+  --name $ACR_VNET_NAME \
+  --address-prefixes $AKS_VNET_CIDR \
+  --subnet-name $AKS_SNET_NAME \
+  --subnet-prefixes $AKS_SNET_CIDR &>/dev/null
 
 ## Create Vnet for ACR
 echo "Create Vnet for ACR"
 az network vnet subnet update \
-  --name $SUBNET_NAME \
-  --vnet-name $NETWORK_NAME \
-  --resource-group $RESOURCE_GROUP \
+  --name $ACR_SUBNET_NAME \
+  --vnet-name $ACR_VNET_NAME \
+  --resource-group $ACR_RG_NAME \
   --disable-private-endpoint-network-policies &>/dev/null
 
 ## Create Private DNS Zone
 echo "Create Private DNS Zone"
 az network private-dns zone create \
-  --resource-group $RESOURCE_GROUP \
+  --resource-group $ACR_RG_NAME \
   --name "privatelink.azurecr.io" &>/dev/null
 
 ## Create Private DNS Link Vnet
 echo "Create Private DNS Link Vnet"
 az network private-dns link vnet create \
-  --resource-group $RESOURCE_GROUP \
+  --resource-group $ACR_RG_NAME \
   --zone-name "privatelink.azurecr.io" \
   --name MyDNSLink \
-  --virtual-network $NETWORK_NAME \
+  --virtual-network $ACR_VNET_NAME \
   --registration-enabled false &>/dev/null
 
 ## Get Registry ID
 echo "Get Registry ID"
 REGISTRY_ID=$(az acr show \
-	--name $REGISTRY_NAME \
-	--query 'id' \
-	--output tsv)
+    --name $ACR_NAME \
+    --query 'id' \
+    --output tsv)
 
 ## Create Private Endpoint
 echo "Create Private Endpoint"
 az network private-endpoint create \
   --name myPrivateEndpoint \
-  --resource-group $RESOURCE_GROUP \
-  --vnet-name $NETWORK_NAME \
-  --subnet $SUBNET_NAME \
+  --resource-group $ACR_RG_NAME \
+  --vnet-name $ACR_VNET_NAME \
+  --subnet $ACR_SUBNET_NAME \
   --private-connection-resource-id $REGISTRY_ID \
   --group-id registry \
   --connection-name myConnection &>/dev/null
@@ -180,92 +226,95 @@ az network private-endpoint create \
 ## Get Network Interface ID
 echo "Get Network Interface ID"
 NETWORK_INTERFACE_ID=$(az network private-endpoint show \
-	--name myPrivateEndpoint \
-	--resource-group $RESOURCE_GROUP \
-	--query 'networkInterfaces[0].id' \
-	--output tsv)
+    --name myPrivateEndpoint \
+    --resource-group $ACR_RG_NAME \
+    --query 'networkInterfaces[0].id' \
+    --output tsv)
 
 ## Get Registry Private IP
 echo "Get Registry Private IP"
 REGISTRY_PRIVATE_IP=$(az network nic show \
-	--ids $NETWORK_INTERFACE_ID \
-	--query "ipConfigurations[?privateLinkConnectionProperties.requiredMemberName=='registry'].privateIpAddress" \
-	--output tsv)
+    --ids $NETWORK_INTERFACE_ID \
+    --query "ipConfigurations[?privateLinkConnectionProperties.requiredMemberName=='registry'].privateIpAddress" \
+    --output tsv)
 
 ## Get Data EndPoint Private IP
 echo "Get Data EndPoint Private IP"
 DATA_ENDPOINT_PRIVATE_IP=$(az network nic show \
-	--ids $NETWORK_INTERFACE_ID \
-	--query "ipConfigurations[?privateLinkConnectionProperties.requiredMemberName=='registry_data_eastus'].privateIpAddress" \
-	--output tsv)
+    --ids $NETWORK_INTERFACE_ID \
+    --query "ipConfigurations[?privateLinkConnectionProperties.requiredMemberName=='registry_data_eastus'].privateIpAddress" \
+    --output tsv)
 
 ## An FQDN is associated with each IP address in the IP configurations
 echo "Get Registry FQDN"
 REGISTRY_FQDN=$(az network nic show \
-	--ids $NETWORK_INTERFACE_ID \
-	--query "ipConfigurations[?privateLinkConnectionProperties.requiredMemberName=='registry'].privateLinkConnectionProperties.fqdns" \
-	--output tsv)
+    --ids $NETWORK_INTERFACE_ID \
+    --query "ipConfigurations[?privateLinkConnectionProperties.requiredMemberName=='registry'].privateLinkConnectionProperties.fqdns" \
+    --output tsv)
 
 ## Get Data Endpoint FQDN
 echo "Get Data Endpoint FQDN"
 DATA_ENDPOINT_FQDN=$(az network nic show \
-	--ids $NETWORK_INTERFACE_ID \
-	--query "ipConfigurations[?privateLinkConnectionProperties.requiredMemberName=='registry_data_eastus'].privateLinkConnectionProperties.fqdns" \
-	--output tsv)
+    --ids $NETWORK_INTERFACE_ID \
+    --query "ipConfigurations[?privateLinkConnectionProperties.requiredMemberName=='registry_data_eastus'].privateLinkConnectionProperties.fqdns" \
+    --output tsv)
 
 ## Set Private DNS Record 
 echo "Set Private DNS Record"
 az network private-dns record-set a create \
-  --name $REGISTRY_NAME \
+  --name $ACR_NAME \
   --zone-name privatelink.azurecr.io \
-  --resource-group $RESOURCE_GROUP &>/dev/null
+  --resource-group $ACR_RG_NAME &>/dev/null
 
 ## Specify registry region in data endpoint name
 echo "Specify registry region in data endpoint name"
 az network private-dns record-set a create \
-  --name ${REGISTRY_NAME}.${REGISTRY_LOCATION}.data \
+  --name ${ACR_NAME}.${ACR_RG_LOCATION}.data \
   --zone-name privatelink.azurecr.io \
-  --resource-group $RESOURCE_GROUP &>/dev/null
+  --resource-group $ACR_RG_NAME &>/dev/null
 
 ## Create A Record in Private DNS Record Set
 echo "Create A Record in Private DNS Record Set"
 az network private-dns record-set a add-record \
-  --record-set-name $REGISTRY_NAME \
+  --record-set-name $ACR_NAME \
   --zone-name privatelink.azurecr.io \
-  --resource-group $RESOURCE_GROUP \
+  --resource-group $ACR_RG_NAME \
   --ipv4-address $REGISTRY_PRIVATE_IP &>/dev/null
+
 
 ## Specify registry region in data endpoint name
 echo "Specify registry region in data endpoint name"
 az network private-dns record-set a add-record \
-  --record-set-name ${REGISTRY_NAME}.${REGISTRY_LOCATION}.data \
+  --record-set-name ${ACR_NAME}.${ACR_RG_LOCATION}.data \
   --zone-name privatelink.azurecr.io \
-  --resource-group $RESOURCE_GROUP \
+  --resource-group $ACR_RG_NAME \
   --ipv4-address $DATA_ENDPOINT_PRIVATE_IP &>/dev/null
 
 ## Import HelloWorld image to ACR
 echo "Import HelloWorld image to ACR"
 az acr import \
-  --name acrlab1<alias> \
+  --name $ACR_NAME \
   --source mcr.microsoft.com/azuredocs/aks-helloworld:v1 \
   --image aks-helloworld:v1 &>/dev/null
 
 ## Disable public access on the ACR
 echo "Disable public access on the ACR"
 az acr update \
-  --name $REGISTRY_NAME \
+  --name $ACR_NAME \
   --public-network-enabled false &>/dev/null
+
 
 ## Deploy an app to AKS that needs to pull the imported helloworld image, pulling the image will fail
 echo "Deploy an app to AKS that needs to pull the imported helloworld image, pulling the image will fail"
 az aks get-credentials \
-  --resource-group acr_labs \
-  --name acr-lab1-aks &>/dev/null
- 
+  --resource-group $ACR_RG_NAME \
+  --name $AKS_NAME \
+  --overwrite-existing
 
 ## Create AKS NS for the Workload
 echo "Create AKS NS for the Workload"
 kubectl create ns workload &>/dev/null
+
 
 ## Deploy the workload
 echo "Deploy the workload"
@@ -286,7 +335,7 @@ spec:
     spec:
       containers:
       - name: aks-helloworld-one
-        image: acrlab1<alias>.azurecr.io/aks-helloworld:v1
+        image: $ACR_NAME.azurecr.io/aks-helloworld:v1
         imagePullPolicy: Always
         ports:
         - containerPort: 80
@@ -294,9 +343,23 @@ spec:
         - name: TITLE
           value: "Welcome to Azure Kubernetes Service (AKS)"
 EOF
- 
 
 
+POD_STATUS=$(kubectl -n workload get po -l app=aks-helloworld-one -o json | jq -r ".items[].status.containerStatuses[].state.waiting.reason")
+
+while [ "$POD_STATUS" != "ErrImagePull" ]
+do
+  ## Delete Pod to force the issue
+  echo "Delete Pod to force the issue"
+  kubectl --namespace workload delete po -l app=aks-helloworld-one &>/dev/null
+  sleep 10
+  POD_STATUS=$(kubectl -n workload get po -l app=aks-helloworld-one -o json | jq -r ".items[].status.containerStatuses[].state.waiting.reason")
+  echo ""
+  echo "Current Pod Status: $POD_STATUS"
+done
+
+
+echo "END"
 }
 
 function lab_scenario_1_validation () {
