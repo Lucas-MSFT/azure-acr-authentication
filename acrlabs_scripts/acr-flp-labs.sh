@@ -15,11 +15,11 @@ TEMP=`getopt -o g:n:l:r:u:hv --long resource-group:,name:,lab:,region:,user:,hel
 eval set -- "$TEMP"
 
 ## set an initial value for the flags
-RESOURCE_GROUP=""
+ACR_RG_NAME=""
 ACR_NAME=""
 LAB_SCENARIO=""
 USER_ALIAS=""
-LOCATION="westeurope"
+ACR_RG_LOCATION="westeurope"
 VALIDATE=0
 HELP=0
 VERSION=0
@@ -30,7 +30,7 @@ do
         -h|--help) HELP=1; shift;;
         -g|--resource-group) case "$2" in
             "") shift 2;;
-            *) RESOURCE_GROUP="$2"; shift 2;;
+            *) ACR_RG_NAME="$2"; shift 2;;
             esac;;
         -n|--name) case "$2" in
             "") shift 2;;
@@ -42,7 +42,7 @@ do
             esac;;
         -r|--region) case "$2" in
             "") shift 2;;
-            *) LOCATION="$2"; shift 2;;
+            *) ACR_RG_LOCATION="$2"; shift 2;;
             esac;;
         -u|--user) case "$2" in
             "") shift 2;;
@@ -75,20 +75,17 @@ function az_login_check () {
 
 ## Check Resource Group and ACR
 function check_resourcegroup_cluster () {
-    RESOURCE_GROUP="$1"
-    ACR_NAME="$2"
-
-    RG_EXIST=$(az group show -g $RESOURCE_GROUP &>/dev/null; echo $?)
+    RG_EXIST=$(az group show -g $ACR_RG_NAME &>/dev/null; echo $?)
     if [ $RG_EXIST -ne 0 ]
     then
-        echo -e "\n--> Creating resource group ${RESOURCE_GROUP}...\n"
-        az group create --name $RESOURCE_GROUP --location $LOCATION -o table &>/dev/null
+        echo -e "\n--> Creating resource group ${ACR_RG_NAME}...\n"
+        az group create --name $ACR_RG_NAME --location $ACR_RG_LOCATION -o table &>/dev/null
     else
-        echo -e "\nResource group $RESOURCE_GROUP already exists...\n"
+        echo -e "\nResource group $ACR_RG_NAME already exists...\n"
     fi
 
-    ACR_EXIST=$(az acr show -g $RESOURCE_GROUP -n $ACR_NAME &>/dev/null; echo $?)
-    if [ $ACI_EXIST -eq 0 ]
+    ACR_EXIST=$(az acr show -g $ACR_RG_NAME -n $ACR_NAME &>/dev/null; echo $?)
+    if [ $ACR_EXIST -eq 0 ]
     then
         echo -e "\n--> Container Registry $ACR_NAME already exists...\n"
         echo -e "Please remove that one before you can proceed with the lab.\n"
@@ -98,13 +95,10 @@ function check_resourcegroup_cluster () {
 
 ## Validate ACR exists
 function validate_acr_exists () {
-    RESOURCE_GROUP="$1"
-    ACR_NAME="$2"
-
-    ACR_EXIST=$(az acr show -g $RESOURCE_GROUP -n $ACR_NAME &>/dev/null; echo $?)
+    ACR_EXIST=$(az acr show -g $ACR_RG_NAME -n $ACR_NAME &>/dev/null; echo $?)
     if [ $ACR_EXIST -ne 0 ]
     then
-        echo -e "\n--> ERROR: Failed to create Container Registry $ACR_NAME in resource group $RESOURCE_GROUP ...\n"
+        echo -e "\n--> ERROR: Failed to create Container Registry $ACR_NAME in resource group $ACR_RG_NAME ...\n"
         exit 5
     fi
 }
@@ -126,19 +120,12 @@ CORE LABS:
 
 ## Lab scenario 1
 ## ACR Network - Private Endpoint
-
 function lab_scenario_1 () {
-## Private Endpoint - LAB
 
-
-## Set defaults 
-ACR_NAME=acrlab1alias
-ACR_RG_NAME=acr_labs1
+## Set defaults
 ACR_VNET_NAME=acrlab1vnet
 ACR_SUBNET_NAME=default
-ACR_RG_LOCATION="westeurope"
 ACR_SKU="Premium"
-
 
 AKS_NAME="acr-lab1-aks"
 AKS_NODE_COUNT="1"
@@ -148,24 +135,15 @@ AKS_VNET_CIDR="10.0.0.0/16"
 AKS_SNET_NAME="default"
 AKS_SNET_CIDR="10.0.1.0/24"
 
-
-
-
-## Create RG ACR
-echo "Create RG ACR"
-az group create \
-  --name $ACR_RG_NAME \
-  --location $ACR_RG_LOCATION &>/dev/null
-
 ## Create ACR
-echo "Create ACR"
+#echo "Create ACR"
 az acr create \
   --resource-group $ACR_RG_NAME \
   --name $ACR_NAME \
   --sku $ACR_SKU &>/dev/null
 
 ## Create AKS cluster with 1 node and attach to ACR
-echo "Create AKS cluster with 1 node and attach to ACR"
+#echo "Create AKS cluster with 1 node and attach to ACR"
 az aks create \
   --resource-group $ACR_RG_NAME \
   --name $AKS_NAME \
@@ -174,7 +152,7 @@ az aks create \
   --network-plugin $AKS_NETWORK_PLUGIN &>/dev/null 
 
 ## Create a second empty decoy VNET and create a pvt endpoint to this VNET on the ACR
-echo "Create a second empty decoy VNET and create a pvt endpoint to this VNET on the ACR"
+#echo "Create a second empty decoy VNET and create a pvt endpoint to this VNET on the ACR"
 az network vnet create \
   --resource-group $ACR_RG_NAME \
   --name $ACR_VNET_NAME \
@@ -183,7 +161,7 @@ az network vnet create \
   --subnet-prefixes $AKS_SNET_CIDR &>/dev/null
 
 ## Create Vnet for ACR
-echo "Create Vnet for ACR"
+#echo "Create Vnet for ACR"
 az network vnet subnet update \
   --name $ACR_SUBNET_NAME \
   --vnet-name $ACR_VNET_NAME \
@@ -191,13 +169,13 @@ az network vnet subnet update \
   --disable-private-endpoint-network-policies &>/dev/null
 
 ## Create Private DNS Zone
-echo "Create Private DNS Zone"
+#echo "Create Private DNS Zone"
 az network private-dns zone create \
   --resource-group $ACR_RG_NAME \
   --name "privatelink.azurecr.io" &>/dev/null
 
 ## Create Private DNS Link Vnet
-echo "Create Private DNS Link Vnet"
+#echo "Create Private DNS Link Vnet"
 az network private-dns link vnet create \
   --resource-group $ACR_RG_NAME \
   --zone-name "privatelink.azurecr.io" \
@@ -206,14 +184,14 @@ az network private-dns link vnet create \
   --registration-enabled false &>/dev/null
 
 ## Get Registry ID
-echo "Get Registry ID"
+#echo "Get Registry ID"
 REGISTRY_ID=$(az acr show \
     --name $ACR_NAME \
     --query 'id' \
     --output tsv)
 
 ## Create Private Endpoint
-echo "Create Private Endpoint"
+#echo "Create Private Endpoint"
 az network private-endpoint create \
   --name myPrivateEndpoint \
   --resource-group $ACR_RG_NAME \
@@ -224,7 +202,7 @@ az network private-endpoint create \
   --connection-name myConnection &>/dev/null
 
 ## Get Network Interface ID
-echo "Get Network Interface ID"
+#echo "Get Network Interface ID"
 NETWORK_INTERFACE_ID=$(az network private-endpoint show \
     --name myPrivateEndpoint \
     --resource-group $ACR_RG_NAME \
@@ -232,49 +210,49 @@ NETWORK_INTERFACE_ID=$(az network private-endpoint show \
     --output tsv)
 
 ## Get Registry Private IP
-echo "Get Registry Private IP"
+#echo "Get Registry Private IP"
 REGISTRY_PRIVATE_IP=$(az network nic show \
     --ids $NETWORK_INTERFACE_ID \
     --query "ipConfigurations[?privateLinkConnectionProperties.requiredMemberName=='registry'].privateIpAddress" \
     --output tsv)
 
 ## Get Data EndPoint Private IP
-echo "Get Data EndPoint Private IP"
+#echo "Get Data EndPoint Private IP"
 DATA_ENDPOINT_PRIVATE_IP=$(az network nic show \
     --ids $NETWORK_INTERFACE_ID \
     --query "ipConfigurations[?privateLinkConnectionProperties.requiredMemberName=='registry_data_eastus'].privateIpAddress" \
     --output tsv)
 
 ## An FQDN is associated with each IP address in the IP configurations
-echo "Get Registry FQDN"
+#echo "Get Registry FQDN"
 REGISTRY_FQDN=$(az network nic show \
     --ids $NETWORK_INTERFACE_ID \
     --query "ipConfigurations[?privateLinkConnectionProperties.requiredMemberName=='registry'].privateLinkConnectionProperties.fqdns" \
     --output tsv)
 
 ## Get Data Endpoint FQDN
-echo "Get Data Endpoint FQDN"
+#echo "Get Data Endpoint FQDN"
 DATA_ENDPOINT_FQDN=$(az network nic show \
     --ids $NETWORK_INTERFACE_ID \
     --query "ipConfigurations[?privateLinkConnectionProperties.requiredMemberName=='registry_data_eastus'].privateLinkConnectionProperties.fqdns" \
     --output tsv)
 
 ## Set Private DNS Record 
-echo "Set Private DNS Record"
+#echo "Set Private DNS Record"
 az network private-dns record-set a create \
   --name $ACR_NAME \
   --zone-name privatelink.azurecr.io \
   --resource-group $ACR_RG_NAME &>/dev/null
 
 ## Specify registry region in data endpoint name
-echo "Specify registry region in data endpoint name"
+#echo "Specify registry region in data endpoint name"
 az network private-dns record-set a create \
   --name ${ACR_NAME}.${ACR_RG_LOCATION}.data \
   --zone-name privatelink.azurecr.io \
   --resource-group $ACR_RG_NAME &>/dev/null
 
 ## Create A Record in Private DNS Record Set
-echo "Create A Record in Private DNS Record Set"
+#echo "Create A Record in Private DNS Record Set"
 az network private-dns record-set a add-record \
   --record-set-name $ACR_NAME \
   --zone-name privatelink.azurecr.io \
@@ -283,7 +261,7 @@ az network private-dns record-set a add-record \
 
 
 ## Specify registry region in data endpoint name
-echo "Specify registry region in data endpoint name"
+#echo "Specify registry region in data endpoint name"
 az network private-dns record-set a add-record \
   --record-set-name ${ACR_NAME}.${ACR_RG_LOCATION}.data \
   --zone-name privatelink.azurecr.io \
@@ -291,33 +269,33 @@ az network private-dns record-set a add-record \
   --ipv4-address $DATA_ENDPOINT_PRIVATE_IP &>/dev/null
 
 ## Import HelloWorld image to ACR
-echo "Import HelloWorld image to ACR"
+#echo "Import HelloWorld image to ACR"
 az acr import \
   --name $ACR_NAME \
   --source mcr.microsoft.com/azuredocs/aks-helloworld:v1 \
   --image aks-helloworld:v1 &>/dev/null
 
 ## Disable public access on the ACR
-echo "Disable public access on the ACR"
+#echo "Disable public access on the ACR"
 az acr update \
   --name $ACR_NAME \
   --public-network-enabled false &>/dev/null
 
 
 ## Deploy an app to AKS that needs to pull the imported helloworld image, pulling the image will fail
-echo "Deploy an app to AKS that needs to pull the imported helloworld image, pulling the image will fail"
+#echo "Deploy an app to AKS that needs to pull the imported helloworld image, pulling the image will fail"
 az aks get-credentials \
   --resource-group $ACR_RG_NAME \
   --name $AKS_NAME \
   --overwrite-existing
 
 ## Create AKS NS for the Workload
-echo "Create AKS NS for the Workload"
+#echo "Create AKS NS for the Workload"
 kubectl create ns workload &>/dev/null
 
 
 ## Deploy the workload
-echo "Deploy the workload"
+#echo "Deploy the workload"
 cat <<EOF | kubectl -n workload apply -f -
 apiVersion: apps/v1
 kind: Deployment
@@ -350,26 +328,27 @@ POD_STATUS=$(kubectl -n workload get po -l app=aks-helloworld-one -o json | jq -
 while [ "$POD_STATUS" != "ErrImagePull" ]
 do
   ## Delete Pod to force the issue
-  echo "Delete Pod to force the issue"
+  #echo "Delete Pod to force the issue"
   kubectl --namespace workload delete po -l app=aks-helloworld-one &>/dev/null
   sleep 10
   POD_STATUS=$(kubectl -n workload get po -l app=aks-helloworld-one -o json | jq -r ".items[].status.containerStatuses[].state.waiting.reason")
-  echo ""
-  echo "Current Pod Status: $POD_STATUS"
+  #echo ""
+  #echo "Current Pod Status: $POD_STATUS"
 done
 
 
 echo "END"
 }
 
+
 function lab_scenario_1_validation () {
 
-    ACI_NAME="appcontaineryaml"
+    ACR_NAME="appcontaineryaml"
     RESOURCE_GROUP=aci-labs-ex${LAB_SCENARIO}-rg-${USER_ALIAS}
 
     validate_aci_exists $RESOURCE_GROUP $ACI_NAME
 
-    ACI_STATUS=$(az container show -g $RESOURCE_GROUP -n $ACI_NAME &>/dev/null; echo $?)
+    ACR_STATUS=$(az container show -g $RESOURCE_GROUP -n $ACI_NAME &>/dev/null; echo $?)
 
     if [ $ACI_STATUS -eq 0 ]
     then
@@ -487,9 +466,12 @@ EOF
 
 
 
-function lab_scenario_2_validation () {
+#function lab_scenario_2_validation () {
+#
+#}
 
-}
+
+
 
 
 
@@ -525,9 +507,26 @@ if [ -z $USER_ALIAS ]; then
 	exit 10
 fi
 
-# lab scenario has a valid option
+if [[ "$ACR_RG_NAME" == "" ]]
+then
+  ACR_RG_NAME="rg-acr-flp-labs"
+fi
 
-REG_EX="^\\b([1-9]|)\\b"
+
+echo ">>>>>>"
+echo "ACR_NAME is: $ACR_NAME"
+echo ""
+
+if [[ "$ACR_NAME" == "" ]]
+then
+  ACR_NAME=$(shuf -er -n10 {a..z} {0..9} | paste -sd "")
+  echo "Since ACR_NAME is Empty..."
+  echo "Final Name for ACR: $ACR_NAME"
+fi
+
+
+## lab scenario has a valid option
+REG_EX="^\\b([1-2]|)\\b"
 
 if [[ ! $LAB_SCENARIO =~ $REG_EX ]];
 then
