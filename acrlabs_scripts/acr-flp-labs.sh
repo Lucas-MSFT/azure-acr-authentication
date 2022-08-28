@@ -392,24 +392,36 @@ eploy the second container instance \"appcontaineryaml\"\n"
 function lab_scenario_2 () {
 ## Firewall - LAB
 
+ACR_RG_NAME="acr_labs2"
+ACR_LOCATION="westeurope"
+ACR_NAME="acrlab2alias"
+ACR_SKU="Premium"
+
+AKS_RG_NAME=$ACR_RG_NAME
+AKS_NAME="aks-acr-net-lab02"
+AKS_NODES_COUNT="1"
+AKS_NETWORK_PLUGIN="azure"
+
+
 ## Create RG for ACR
-echo "Create an ACR"
+echo "Create RG for ACR"
 az group create \
-  --name acr_labs \
-  --location eastus &>/dev/null
+  --name $ACR_RG_NAME \
+  --location $ACR_LOCATION &>/dev/null
 
 
 ## Create ACR
+echo "Create ACR"
 az acr create \
-  --resource-group acr_labs \
-  --name acrlab2<alias> \
-  --sku Premium &>/dev/null
+  --resource-group $ACR_RG_NAME \
+  --name $ACR_NAME \
+  --sku $ACR_SKU &>/dev/null
 
 
 ## Import HelloWorld image to ACR
 echo "Import HelloWorld image to ACR"
 az acr import \
-  --name acrlab2<alias> \
+  --name $ACR_NAME \
   --source mcr.microsoft.com/azuredocs/aks-helloworld:v1 \
   --image aks-helloworld:v1 &>/dev/null
 
@@ -417,26 +429,30 @@ az acr import \
 ## Set ACR to default Deny to limit access to select networks, with no rules
 echo "Set ACR to default Deny to limit access to select networks, with no rules"
 az acr update \
-  --name acrlab2<alias> \
+  --name $ACR_NAME \
   --default-action Deny &>/dev/null
 
 
 ## Create AKS cluster with 1 node and attach to ACR
 echo "Create AKS cluster with 1 node and attach to ACR"
 az aks create \
-  -g acr_labs \
-  -n acr-lab2-aks \
-  --attach-acr acrlab2<alias> \
-  --node-count 1 \
-  --network-plugin azure &>/dev/null
+  --resource-group $ACR_RG_NAME \
+  --name $AKS_NAME \
+  --attach-acr $ACR_NAME \
+  --node-count $AKS_NODES_COUNT \
+  --network-plugin $AKS_NETWORK_PLUGIN &>/dev/null
 
 
 ## Deploy an app to AKS that needs to pull the imported helloworld image, pulling the image will fail
 echo "Deploy an app to AKS that needs to pull the imported helloworld image, pulling the image will fail"
 az aks get-credentials \
-  --resource-group acr_labs \
-  --name acr-lab2-aks &>/dev/null
- 
+  --resource-group $ACR_RG_NAME \
+  --name $AKS_NAME \
+  --overwrite-existing &>/dev/null
+
+
+echo ""
+echo "Deploy deployment...."
 
 kubectl create ns workload
 cat <<EOF | kubectl -n workload apply -f -
@@ -456,7 +472,7 @@ spec:
     spec:
       containers:
       - name: aks-helloworld-one
-        image: acrlab2<alias>.azurecr.io/aks-helloworld:v1
+        image: $ACR_NAME.azurecr.io/aks-helloworld:v1
         imagePullPolicy: Always
         ports:
         - containerPort: 80
