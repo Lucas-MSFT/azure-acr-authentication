@@ -134,7 +134,7 @@ az acr create \
 
 ## To create AKS we need to have the priv/puv keys or generate keys 
 #echo "Generate priv pub keys"
-ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N '' &>/dev/null
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N '' <<< y >/dev/null 2>&1
 
 
 ## Create AKS cluster with 1 node and attach to ACR
@@ -387,7 +387,7 @@ az acr update \
 
 ## To create AKS we need to have the priv/puv keys or generate keys 
 #echo "Generate priv pub keys"
-ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N '' &>/dev/null
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N '' <<< y >/dev/null 2>&1
 
 
 ## Create AKS cluster with 1 node and attach to ACR
