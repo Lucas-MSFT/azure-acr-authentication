@@ -96,6 +96,10 @@ function check_resourcegroup_cluster () {
 function print_usage_text () {
     NAME_EXEC="acr-flp-labs"
     echo -e "$NAME_EXEC usage: $NAME_EXEC -l <LAB#> -u <USER_ALIAS> [-v|--validate] [-r|--region] [-h|--help] [--version]\n"
+    echo -e "Example with mandatory options for lab 1 and user xpto: acr-flp-labs -l 1 -u xpto\n"
+    echo -e "\n"
+    echo -e "Example with more option like location and resource group: acr-flp-labs -l 1 -u xpto -r westeurope -g rg-acr-flp-lab1\n"
+    echo -e "\n"
     echo -e "\nHere is the list of current labs available:\n
 *************************************************************************************
 CORE LABS:
