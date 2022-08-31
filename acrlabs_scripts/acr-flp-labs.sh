@@ -120,7 +120,7 @@ ACR_VNET_NAME=acrlab1vnet
 ACR_SUBNET_NAME=default
 ACR_SKU="Premium"
 
-AKS_NAME="acr-lab1-aks"
+AKS_NAME="aks-acr-net-lab01"
 AKS_NODE_COUNT="1"
 AKS_NETWORK_PLUGIN="azure"
 
