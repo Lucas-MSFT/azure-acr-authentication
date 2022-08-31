@@ -452,6 +452,17 @@ spec:
           value: "Welcome to Azure Kubernetes Service (AKS)"
 EOF
 
+echo ""
+echo -e "\n\n========================================================"
+echo -e "\nDeployment with 1 Pod and 1 container done!"
+echo -e "\nDeployment details: Pod name ---> aks-helloworld-one* and container name ---> aks-helloworld-one"
+echo -e "\nPod is <<NOT>> in Running Status and it <<SHOULD>> be!"
+echo -e "\n You can run (to check): kubectl -n workload get po -o wide"
+echo -e "\n\n========================================================"
+
+
+echo "END"
+
 }
 
 function lab_scenario_2_validation () {
