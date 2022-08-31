@@ -107,6 +107,8 @@ CORE LABS:
 *\t 2. ACR Network - Firewall
 
 *************************************************************************************\n"
+
+echo -e "\nOnce you think you have solved the issue, use the validation parameter to check, example - acr-flp-labs -l 1 -u xpto -v:\n"
 }
 
 
