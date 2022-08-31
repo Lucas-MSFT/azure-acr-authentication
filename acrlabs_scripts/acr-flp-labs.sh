@@ -459,8 +459,9 @@ echo -e "\n\n========================================================"
 echo -e "\n Deployment of AKS cluster - $AKS_NAME - done!"
 echo -e "\n Deployment of ACR - $ACR_NAME - done!"
 echo -e "\n Deployment with 1 replica to aks cluster done!"
-echo -e "\n Deployment details: Pod name ---> aks-helloworld-one* and container name ---> aks-helloworld-one"
-echo -e "\n Pod is <<NOT>> in Running Status and it <<SHOULD>> be!"
+echo -e "\n Deployment details: 1 pod aks-helloworld-one-* with 1 container named aks-helloworld-one"
+echo -e "\n This pod is attempting to pull the image with ACR Firewall rules in place and is <<NOT>> in Running Status"
+echo -e "\n and to pass this lab it <<NEEDS>> to be in a running state"
 echo -e "\n\n========================================================"
 
 
@@ -512,13 +513,14 @@ fi
 
 if [[ "$ACR_RG_NAME" == "" ]]
 then
-  ACR_RG_NAME="rg-acr-flp-labs"
+  ACR_RG_NAME="rg-acr-flp-lab$LAB_SCENARIO"
 fi
 
 if [[ "$ACR_NAME" == "" ]]
 then
-  ACR_NAME=$(shuf -er -n10 {a..z} {0..9} | paste -sd "")
-  ACR_NAME="$ACR_NAMElab$LAB_SCENARIO"
+  ACR_NAME_RANDOM=$(shuf -er -n6 {a..z} {0..9} | paste -sd "")
+  #echo "Random part: $ACR_NAME_RANDOM"
+  ACR_NAME="$ACR_NAME_RANDOM"lab"$LAB_SCENARIO"
   #echo "Since ACR_NAME is Empty..."
   #echo "Final Name for ACR: $ACR_NAME"
 fi
