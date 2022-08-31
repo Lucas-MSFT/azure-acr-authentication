@@ -332,6 +332,15 @@ do
 done
 
 
+echo ""
+echo -e "\n\n========================================================"
+echo -e "\n Deployment with 1 replica done!"
+echo -e "\n Deployment details: 1 pod aks-helloworld-one-* with 1 container named aks-helloworld-one"
+echo -e "\n This pod is <<NOT>> in Running Status and it <<SHOULD>>"
+echo -e "\n You can run (to check): kubectl -n workload get po -o wide"
+echo -e "\n\n========================================================"
+echo ""
+
 echo "END"
 }
 
