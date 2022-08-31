@@ -338,10 +338,12 @@ done
 
 echo ""
 echo -e "\n\n========================================================"
-echo -e "\n Deployment with 1 replica done!"
+echo -e "\n Deployment of AKS cluster - $AKS_NAME - done!"
+echo -e "\n Deployment of ACR - $ACR_NAME - done!"
+echo -e "\n Deployment with 1 replica to aks cluster done!"
 echo -e "\n Deployment details: 1 pod aks-helloworld-one-* with 1 container named aks-helloworld-one"
-echo -e "\n This pod is <<NOT>> in Running Status and it <<SHOULD>>"
-echo -e "\n You can run (to check): kubectl -n workload get po -o wide"
+echo -e "\n This pod is attempting to pull the image over private endpoint and is <<NOT>> in Running State"
+echo -e "\n and to pass this lab it <<NEEDS>> to be in a Running State"
 echo -e "\n\n========================================================"
 echo ""
 
@@ -454,10 +456,11 @@ EOF
 
 echo ""
 echo -e "\n\n========================================================"
-echo -e "\nDeployment with 1 Pod and 1 container done!"
-echo -e "\nDeployment details: Pod name ---> aks-helloworld-one* and container name ---> aks-helloworld-one"
-echo -e "\nPod is <<NOT>> in Running Status and it <<SHOULD>> be!"
-echo -e "\n You can run (to check): kubectl -n workload get po -o wide"
+echo -e "\n Deployment of AKS cluster - $AKS_NAME - done!"
+echo -e "\n Deployment of ACR - $ACR_NAME - done!"
+echo -e "\n Deployment with 1 replica to aks cluster done!"
+echo -e "\n Deployment details: Pod name ---> aks-helloworld-one* and container name ---> aks-helloworld-one"
+echo -e "\n Pod is <<NOT>> in Running Status and it <<SHOULD>> be!"
 echo -e "\n\n========================================================"
 
 
