@@ -515,6 +515,7 @@ fi
 if [[ "$ACR_NAME" == "" ]]
 then
   ACR_NAME=$(shuf -er -n10 {a..z} {0..9} | paste -sd "")
+  ACR_NAME="$ACR_NAMElab$LAB_SCENARIO"
   #echo "Since ACR_NAME is Empty..."
   #echo "Final Name for ACR: $ACR_NAME"
 fi
