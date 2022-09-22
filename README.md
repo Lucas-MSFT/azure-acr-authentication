@@ -1,4 +1,4 @@
-# acr-flp-labs
+# acr-flp-networking
 This is a set of scripts and tools use to generate a docker image that will have the acr-flp-labs binary used to evaluate your ACR troubleshooting skill.
 
 It uses the shc_script_converter.sh (build using the following tool https://github.com/neurobin/shc) to abstract the lab scripts on binary format and then the use the Dockerfile to pack everyting on a Ubuntu container with az cli and kubectl.
@@ -7,7 +7,7 @@ Any time the labs script require an update the github actions can be use to trig
 
 Here is the general usage for the image and acr-flp-labs tool:
 
-Run in docker: `docker run -it typeoneg/acr-flp-labs:latest`
+Run in docker: `docker run -it typeoneg/acr-flp-networking:latest`
 
 acr-flp-labs tool usage:
 ```
