@@ -1,6 +1,6 @@
 #!/bin/bash
 
-## script name: acr-flp-labs.sh
+## script name: acr-flp-networking.sh
 ## Set of tools to deploy ACR Troubleshooting Labs
 
 ## "-l|--lab" Lab scenario to deploy
@@ -10,7 +10,7 @@
 ## "--version" print version
 
 ## read the options
-TEMP=`getopt -o g:n:l:r:u:hv --long resource-group:,name:,lab:,region:,user:,help,validate,version -n 'acr-flp-labs.sh' -- "$@"`
+TEMP=`getopt -o g:n:l:r:u:hv --long resource-group:,name:,lab:,region:,user:,help,validate,version -n 'acr-flp-networking.sh' -- "$@"`
 eval set -- "$TEMP"
 
 ## set an initial value for the flags
@@ -94,11 +94,11 @@ function check_resourcegroup_cluster () {
 
 ## Usage text
 function print_usage_text () {
-    NAME_EXEC="acr-flp-labs"
+    NAME_EXEC="acr-flp-networking"
     echo -e "$NAME_EXEC usage: $NAME_EXEC -l <LAB#> -u <USER_ALIAS> [-v|--validate] [-r|--region] [-h|--help] [--version]\n"
-    echo -e "Example with mandatory options for lab 1 and user xpto: acr-flp-labs -l 1 -u xpto\n"
+    echo -e "Example with mandatory options for lab 1 and user xpto: acr-flp-networking -l 1 -u xpto\n"
     echo -e "\n"
-    echo -e "Example with more option like location and resource group: acr-flp-labs -l 1 -u xpto -r westeurope -g rg-acr-flp-lab1\n"
+    echo -e "Example with more option like location and resource group: acr-flp-networking -l 1 -u xpto -r westeurope -g rg-acr-flp-networking-lab1\n"
     echo -e "\n"
     echo -e "\nHere is the list of current labs available:\n
 *************************************************************************************
@@ -108,7 +108,7 @@ CORE LABS:
 
 *************************************************************************************\n"
 
-echo -e "\nOnce you think you have solved the issue, use the validation parameter to check, example - acr-flp-labs -l 1 -u xpto -v:\n"
+echo -e "\nOnce you think you have solved the issue, use the validation parameter to check, example - acr-flp-networking -l 1 -u xpto -v:\n"
 }
 
 
@@ -515,7 +515,7 @@ fi
 
 if [[ "$ACR_RG_NAME" == "" ]]
 then
-  ACR_RG_NAME="rg-acr-flp-lab$LAB_SCENARIO"
+  ACR_RG_NAME="rg-acr-flp-networking-lab$LAB_SCENARIO"
 fi
 
 if [[ "$ACR_NAME" == "" ]]
