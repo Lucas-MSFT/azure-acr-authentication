@@ -25,10 +25,10 @@ jobs:
     - name: Get the version
       run: echo TAG_ID=${GITHUB_REF:10} >> $GITHUB_ENV
     - name: Build the tagged Docker image
-      run: docker build . --file Dockerfile -t typeoneg/acr-flp-labs:"${TAG_ID}"
+      run: docker build . --file Dockerfile -t typeoneg/acr-flp-networking:"${TAG_ID}"
     - name: Push the tagged Docker image
-      run: docker push typeoneg/acr-flp-labs:"${TAG_ID}"
+      run: docker push typeoneg/acr-flp-networking:"${TAG_ID}"
     - name: Tag the latest Docker image
-      run: docker tag typeoneg/acr-flp-labs:"${TAG_ID}" typeoneg/acr-flp-labs:latest
+      run: docker tag typeoneg/acr-flp-networking:"${TAG_ID}" typeoneg/acr-flp-networking:latest
     - name: Push the latest Docker image
-      run: docker push typeoneg/acr-flp-labs:latest
+      run: docker push typeoneg/acr-flp-networking:latest
