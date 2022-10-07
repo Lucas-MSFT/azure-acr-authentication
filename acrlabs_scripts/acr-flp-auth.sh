@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# script name: acr-flp-labs.sh
+# script name: acr-flp-auth.sh
 # Version v0.0.2 20220204
-# Set of tools to deploy ACI troubleshooting labs
+# Set of tools to deploy ACR troubleshooting labs
 
 # "-l|--lab" Lab scenario to deploy
 # "-r|--region" region to deploy the resources
