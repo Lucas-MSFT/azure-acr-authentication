@@ -11,7 +11,7 @@
 # "--version" print version
 
 # read the options
-TEMP=`getopt -o g:n:l:r:u:hv --long resource-group:,name:,lab:,region:,user:,help,validate,version -n 'acr-flp-labs.sh' -- "$@"`
+TEMP=`getopt -o g:n:l:r:u:hv --long resource-group:,name:,lab:,region:,user:,help,validate,version -n 'acr-flp-auth.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # set an initial value for the flags
