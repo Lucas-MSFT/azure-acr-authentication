@@ -15,4 +15,4 @@ COPY ./bashrc /root/.bashrc
 
 COPY ./acrlabs_binaries/* /usr/local/bin/
 
-ENTRYPOINT service docker restart && /bin/bash
+CMD service docker restart && /bin/bash
