@@ -15,4 +15,4 @@ COPY ./bashrc /root/.bashrc
 
 COPY ./acrlabs_binaries/* /usr/local/bin/
 
-CMD ["/bin/bash", "service docker start"]
+CMD ["service docker start && /bin/bash"]
