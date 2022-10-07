@@ -15,4 +15,4 @@ COPY ./bashrc /root/.bashrc
 
 COPY ./acrlabs_binaries/* /usr/local/bin/
 
-CMD ["service docker start && /bin/bash"]
+ENTRYPOINT service ssh restart && bash
