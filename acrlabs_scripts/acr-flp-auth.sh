@@ -277,11 +277,6 @@ function lab_scenario_2 () {
     AKS_NAME=ACRLabAKS${USER_ALIAS}
     AKS_SP_NAME=akslabsp$(echo $RANDOM | md5sum | head -c 10; echo;)
 
-    echo -e "Creating AKS Service Principal..."
-    echo -e "..."
-    AKS_SP_SECRET=$(az ad sp create-for-rbac -n "$AKS_SP_NAME" --query "password" -o tsv)
-    AKS_APP_ID=$(az ad sp list --display-name $AKS_SP_NAME --query "[].appId" -o tsv)
-
     echo -e "Creating AKS Cluster..."
     echo -e "..."
     az aks create \
@@ -289,8 +284,7 @@ function lab_scenario_2 () {
         --resource-group="$RESOURCE_GROUP" \
         --location="$LOCATION" \
         --node-count 2 \
-        --service-principal "$AKS_APP_ID" \
-        --client-secret "$AKS_SP_SECRET" \
+        --enable-managed-identity
         --generate-ssh-keys
 
     FQDN=$(az aks show -n $AKS_NAME -g $RESOURCE_GROUP --query "fqdn" -o tsv)
