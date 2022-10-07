@@ -293,7 +293,7 @@ function lab_scenario_2 () {
     echo -e "\t az group delete -n $RESOURCE_GROUP -y --no-wait"
 
     echo -e "Creating Pod..."
-    az aks get-credentials --name "$AKS_NAME" --resource-group "$RESOURCE_GROUP" -y
+    az aks get-credentials --name "$AKS_NAME" --resource-group "$RESOURCE_GROUP" --overwrite-existing
 
 cat << EOF > Pod.yaml
 apiVersion: v1
