@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # script name: acr-flp-auth.sh
-# Version v0.0.2 20220204
+# Version v0.0.3 20221006
 # Set of tools to deploy ACR troubleshooting labs
 
 # "-l|--lab" Lab scenario to deploy
@@ -19,7 +19,7 @@ RESOURCE_GROUP=""
 ACR_NAME=""
 LAB_SCENARIO=""
 USER_ALIAS=""
-LOCATION="eastus"
+LOCATION=""
 VALIDATE=0
 HELP=0
 VERSION=0
@@ -58,7 +58,7 @@ done
 # Variable definition
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 SCRIPT_NAME="$(echo $0 | sed 's|\.\/||g')"
-SCRIPT_VERSION="Version v0.0.2 20220204"
+SCRIPT_VERSION="Version v0.0.3 20221006"
 
 # Funtion definition
 
