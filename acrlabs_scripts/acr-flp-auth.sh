@@ -246,6 +246,7 @@ function lab_scenario_2 () {
     RESOURCE_GROUP=ACR-Auth-Lab-${USER_ALIAS}-Lab2
     ACR_NAME=acrauthlab${USER_ALIAS}
     ACR_LOGIN_SERVER="$ACR_NAME.azurecr.io"
+    LOCATION="eastus"
 
     az group create --location "$LOCATION" --resource-group "$RESOURCE_GROUP"
 
