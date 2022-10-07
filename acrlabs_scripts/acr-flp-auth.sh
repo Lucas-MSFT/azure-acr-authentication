@@ -109,7 +109,7 @@ function validate_acr_exists () {
 
 # Usage text
 function print_usage_text () {
-    NAME_EXEC="acr-flp-labs"
+    NAME_EXEC="acr-flp-auth"
     echo -e "$NAME_EXEC usage: $NAME_EXEC -l <LAB#> -u <USER_ALIAS> [-v|--validate] [-r|--region] [-h|--help] [--version]\n"
     echo -e "\nHere is the list of current labs available:\n
 *************************************************************************************
