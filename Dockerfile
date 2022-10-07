@@ -15,4 +15,4 @@ COPY ./bashrc /root/.bashrc
 
 COPY ./acrlabs_binaries/* /usr/local/bin/
 
-CMD ["/bin/bash"]
+CMD ["systemctl enable docker && systemctl enable docker && /bin/bash"]
