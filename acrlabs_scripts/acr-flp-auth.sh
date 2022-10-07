@@ -258,15 +258,12 @@ function lab_scenario_2 () {
 
     ACR_REGISTRY_ID=$(az acr show --name $ACR_NAME --query "id" --output tsv)
 
-    echo -e "Pulling NGINX image locally..."
+    echo -e "Importing NGINX image locally..."
     echo -e "..."
-    docker pull nginx
-
-    echo -e "Tagging and pushing image to ACR..."
-    echo -e "..."
-    docker tag nginx "$ACR_LOGIN_SERVER"/nginx
-    az acr login --name "$ACR_NAME"
-    docker push "$ACR_LOGIN_SERVER"/nginx
+    az acr import \
+        --name "$ACR_NAME" \
+        --source docker.io/library/nginx:latest \
+        --image nginx:latest
 
     echo -e "..."
     AKS_NAME=ACRLabAKS${USER_ALIAS}
@@ -294,11 +291,6 @@ function lab_scenario_2 () {
     echo -e ""
     echo -e "NOTE: This script can not clean up clusters once you are done with them. To delete them, run the following command:"
     echo -e "\t az group delete -n $RESOURCE_GROUP -y --no-wait"
-
-    echo -e "---"
-    echo -e "You should save these, you might need them."
-    echo -e "ACR APP ID:\t$ACR_APP_ID"
-    echo -e "ACR SP Secret:\t$ACR_SP_SECRET"
 
     echo -e "Creating Pod..."
     az aks get-credentials --name "$AKS_NAME" --resource-group "$RESOURCE_GROUP" -y
