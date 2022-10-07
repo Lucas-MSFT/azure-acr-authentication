@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # script name: acr-flp-auth.sh
-# Version v0.0.1 20221006
+# Version v0.0.1 20221007
 # Set of tools to deploy ACR troubleshooting labs
 
 # "-l|--lab" Lab scenario to deploy
@@ -58,7 +58,7 @@ done
 # Variable definition
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 SCRIPT_NAME="$(echo $0 | sed 's|\.\/||g')"
-SCRIPT_VERSION="Version v0.0.1 20221006"
+SCRIPT_VERSION="Version v0.0.1 20221007"
 
 # Funtion definition
 
@@ -114,7 +114,7 @@ function print_usage_text () {
     echo -e "\nHere is the list of current labs available:\n
 *************************************************************************************
 *\t 1. Try to pull an image from the provided ACR until successful.
-*\t 2. Pulling ACR image from AKS fails, find the reason and fix it!
+*\t 2. Pulling ACR image from AKS fails, find the reason and fix it! (use secrets)
 *************************************************************************************\n"
 }
 
@@ -257,11 +257,6 @@ function lab_scenario_2 () {
         --location "$LOCATION"
 
     ACR_REGISTRY_ID=$(az acr show --name $ACR_NAME --query "id" --output tsv)
-    echo -e "Creating ACR Service Principal..."
-    echo -e "..."
-    ACR_SP_NAME=acrlabsp$(echo $RANDOM | md5sum | head -c 10; echo;)
-    ACR_SP_SECRET=$(az ad sp create-for-rbac -n "$ACR_SP_NAME" --scopes "$ACR_REGISTRY_ID" --role acrpull --query "password" -o tsv)
-    ACR_APP_ID=$(az ad sp list --display-name $ACR_SP_NAME --query "[].appId" -o tsv)
 
     echo -e "Pulling NGINX image locally..."
     echo -e "..."
@@ -275,7 +270,6 @@ function lab_scenario_2 () {
 
     echo -e "..."
     AKS_NAME=ACRLabAKS${USER_ALIAS}
-    AKS_SP_NAME=akslabsp$(echo $RANDOM | md5sum | head -c 10; echo;)
 
     echo -e "Creating AKS Cluster..."
     echo -e "..."
@@ -284,7 +278,7 @@ function lab_scenario_2 () {
         --resource-group="$RESOURCE_GROUP" \
         --location="$LOCATION" \
         --node-count 2 \
-        --enable-managed-identity
+        --enable-managed-identity \
         --generate-ssh-keys
 
     FQDN=$(az aks show -n $AKS_NAME -g $RESOURCE_GROUP --query "fqdn" -o tsv)
