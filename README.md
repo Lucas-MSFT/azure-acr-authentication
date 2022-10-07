@@ -11,7 +11,7 @@ Run in docker: `docker run -it lucasdevops/acr-flp-auth:latest`
 
 acr-flp-auth tool usage:
 ```
-$ acr-flp-labs -h
+$ acr-flp-auth -h
 acr-flp-auth usage: acr-flp-auth -l <LAB#> -u <USER_ALIAS> [-v|--validate] [-r|--region] [-h|--help] [--version]
 
 
