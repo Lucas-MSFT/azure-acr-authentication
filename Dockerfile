@@ -9,11 +9,10 @@ RUN apt-get update && apt-get install bash-completion apt-transport-https gnupg 
     && echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ bionic main" > /etc/apt/sources.list.d/azure-cli.list \
     && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu focal stable" > /etc/apt/sources.list.d/docker.list \
     && apt-get update && apt-get install -y kubectl azure-cli jq docker-ce docker-ce-cli containerd.io docker-compose-plugin \
-    && apt-get clean all \
-    && service docker start
+    && apt-get clean all
 
 COPY ./bashrc /root/.bashrc
 
 COPY ./acrlabs_binaries/* /usr/local/bin/
 
-CMD ["/bin/bash"]
+CMD ["/bin/bash", "service docker start"]
